@@ -38,6 +38,59 @@ function initClient() {
     });
 }
 
+//remove everything except valid email addresses
+function stripEmailAddress(email) {
+    var re = /[\w|\-|\.]+@([\w]+\.)+[\w]+/;
+    var result = email.match(re);
+    if (result == null || result == undefined) {
+        return undefined;
+    }
+    else if (result.length == 0) {
+        return result;
+    }
+    else {
+        return result[0];
+    }
+    //return [0]; //Hack, only take the first match (since there should only be one)
+}
+
+function splitStringAddElementsToArray(string, delimiter = ',') {
+    var parts = string.split(delimiter);
+    var ret = [];
+    for (i = 0; i < parts.length; i++)
+    {
+        var toAdd = stripEmailAddress(parts[i]);
+        if (toAdd != undefined) {
+            ret.push(toAdd);
+        }
+    }
+    return ret;
+}
+
+//processing logic to perform for each message
+function forEachMessage(message) {
+    gapi.client.gmail.users.messages.get({
+        'userId': 'me',
+        'id': message.id
+    }).then(function(res) {
+        res.result.payload.parts
+        var headers = res.result.payload.headers;
+        //console.log(headers);
+        var to = []
+        for (k = 0; k < headers.length; k++) {
+            var header = headers[k];
+            if (header.name == "To" || header.name == "cc") {
+                to += splitStringAddElementsToArray(header.value);
+            }
+            // if (header.name == "Cc") {
+            //     to += splitStringAddElementsToArray(header.value);
+            // }
+        }
+        console.log(to);
+    });
+}
+
+//method for gathering the messages and sending them off for analysis
 function performAnalytics() {
     gapi.client.gmail.users.messages.list({
         'userId': 'me'
@@ -46,38 +99,8 @@ function performAnalytics() {
         for (i = 0; i < messages.length; i++)
         {
             var message = messages[i];
-            gapi.client.gmail.users.messages.get({
-                'userId': 'me',
-                'id': message.id
-            }).then(function(res) {
-                res.result.payload.parts
-                var headers = res.result.payload.headers;
-                //console.log(headers);
-                for (k = 0; k < headers.length; k++) {
-                    var header = headers[k];
-                    if (header.name == "To" || header.name == "Cc") {
-                        console.log(header.value);
-                    }
-                }
-                
-                // res.result.payload
-
-                // var parts = res.payload.parts;
-                // for (j = 0; j < parts.length; j++)
-                // {
-                //     console.log(parts[j]);
-                // }
-            });
+            forEachMessage(message);
         }
-
-
-        // for (i = 0; i < messages.length; i++) {
-        //     var message = messages[i];
-        //     var date = message.internalDate;
-        //     //var body = message.payload.body;
-        //     console.log(date);
-        //     //console.log(body);
-        // }
     });
 }
 
