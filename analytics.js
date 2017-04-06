@@ -1,3 +1,5 @@
+var toDict = {} // { email address : count }
+
 //remove everything except valid email addresses
 function stripEmailAddress(email) {
     var re = /[\w|\-|\.]+@([\w]+\.)+[\w]+/;
@@ -27,6 +29,10 @@ function splitStringAddElementsToArray(string, delimiter = ',') {
     return ret;
 }
 
+function assignKey(obj, key) {
+  typeof obj[key] === 'undefined' ? obj[key] = 1 : obj[key]++;
+}
+
 /*  Determines who the message was sent to
     A per message analytic function
 */
@@ -36,10 +42,16 @@ function parseTo(message) {
     for (k = 0; k < headers.length; k++) {
         var header = headers[k];
         if (header.name == "To" || header.name == "Cc") {
-            to += splitStringAddElementsToArray(header.value);
+            var parts = splitStringAddElementsToArray(header.value);
+            for (j = 0; j < parts.length; j++) {
+                var part = parts[j];
+                assignKey(toDict, part);
+            }
+            to += parts;
         }
     }
-    console.log(to);
+    //console.log(toDict);
+    //console.log(to);
 }
 
 //processing logic to perform for each message
@@ -58,14 +70,23 @@ function forEachMessage(message) {
 */
 function performAnalytics() {
     //TODO: make multiple calls here to get all the messages (not just the first batch)
-    gapi.client.gmail.users.messages.list({
-        'userId': 'me'
-    }).then(function(response) {
-        var messages = response.result.messages;
-        for (i = 0; i < messages.length; i++)
-        {
-            var message = messages[i];
-            forEachMessage(message);
-        }
-    });
+    var token = '';
+    var MAX_PAGES = 50;
+    for (i = 0; i < MAX_PAGES; i++) {
+        gapi.client.gmail.users.messages.list({
+            'userId': 'me',
+            'pageToken': token
+        }).then(function(response) {
+            var messages = response.result.messages;
+            for (i = 0; i < messages.length; i++)
+            {
+                var message = messages[i];
+                forEachMessage(message);
+            }
+            token = response.pageToken;
+        }).then(function(response) {
+            console.log(toDict);
+        });
+    }
+    
 }
