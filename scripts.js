@@ -38,6 +38,49 @@ function initClient() {
     });
 }
 
+function performAnalytics() {
+    gapi.client.gmail.users.messages.list({
+        'userId': 'me'
+    }).then(function(response) {
+        var messages = response.result.messages;
+        for (i = 0; i < messages.length; i++)
+        {
+            var message = messages[i];
+            gapi.client.gmail.users.messages.get({
+                'userId': 'me',
+                'id': message.id
+            }).then(function(res) {
+                res.result.payload.parts
+                var headers = res.result.payload.headers;
+                //console.log(headers);
+                for (k = 0; k < headers.length; k++) {
+                    var header = headers[k];
+                    if (header.name == "To" || header.name == "Cc") {
+                        console.log(header.value);
+                    }
+                }
+                
+                // res.result.payload
+
+                // var parts = res.payload.parts;
+                // for (j = 0; j < parts.length; j++)
+                // {
+                //     console.log(parts[j]);
+                // }
+            });
+        }
+
+
+        // for (i = 0; i < messages.length; i++) {
+        //     var message = messages[i];
+        //     var date = message.internalDate;
+        //     //var body = message.payload.body;
+        //     console.log(date);
+        //     //console.log(body);
+        // }
+    });
+}
+
 /**
 *  Called when the signed in status changes, to update the UI
 *  appropriately. After a sign-in, the API is called.
@@ -46,7 +89,8 @@ function updateSigninStatus(isSignedIn) {
     if (isSignedIn) {
         authorizeButton.style.display = 'none';
         signoutButton.style.display = 'block';
-        listLabels();
+        //listLabels();
+        performAnalytics();
     } 
     else {
         authorizeButton.style.display = 'block';
